@@ -77,12 +77,14 @@ const columns = [
   }
 ]
 
-const dataList = ref<API.UserVO>([])
+const dataList = ref<API.UserVO[]>([])
 const total = ref(0)
 
 const searchParams = reactive<API.UserQueryRequest>({
   currentPage: 1,
-  pageSize: 10
+  pageSize: 10,
+  sortField: 'createTime',
+  sortOrder: 'ascend'
 })
 
 const fetchData = async() => {

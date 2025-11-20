@@ -47,7 +47,7 @@ public class FileManager {
         String originalFilename = multipartFile.getOriginalFilename();
         // 自己拼接文件上传路径，而不是使用原始文件名称，可以增加安全性
         String uploadFilename = String.format("%s_%s.%s", DateUtil.formatDate(new Date()), uuid, FileUtil.getSuffix(originalFilename));
-        String uploadPath = String.format("/%s/%s", uploadPathPrefix, uploadFilename);
+        String uploadPath = String.format("%s/%s", uploadPathPrefix, uploadFilename);
         File file = null;
         try {
             file = File.createTempFile(uploadPath, null);
