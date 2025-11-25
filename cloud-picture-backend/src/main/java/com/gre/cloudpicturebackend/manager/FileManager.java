@@ -22,8 +22,13 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * 文件服务
+ * @Deprecated 已废弃，还未使用upload包的模板方法优化
+ */
 @Slf4j
 @Service
+@Deprecated
 public class FileManager {
 
     @Resource
