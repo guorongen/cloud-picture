@@ -2,6 +2,10 @@ server:
   port: 8123
   servlet:
     context-path: /api
+    # cookie 过期时间
+    session:
+      cookie:
+        max-age: 2592000
 spring:
   application:
     name: cloud-picture-backend
@@ -18,6 +22,11 @@ spring:
     connect-timeout: 5000
     username: root
     password:
+  # session 配置
+  session:
+    store-type: redis
+    # session 过期时间
+    timeout: 2592000  # 30 天
   # 文件上传最大体积
   servlet:
     multipart:

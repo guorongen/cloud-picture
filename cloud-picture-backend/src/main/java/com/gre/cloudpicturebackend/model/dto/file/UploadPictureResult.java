@@ -7,6 +7,11 @@ public class UploadPictureResult {
 
     private String url;
 
+    /**
+     * 缩略图url
+     */
+    private String thumbnailUrl;
+
     private String picName;
 
     private Long picSize;
