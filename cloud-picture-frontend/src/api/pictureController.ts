@@ -62,6 +62,14 @@ export async function getPictureVoByIdUsingGet(
   })
 }
 
+/** listSpaceLevel GET /api/picture/list/level */
+export async function listSpaceLevelUsingGet(options?: { [key: string]: any }) {
+  return request<API.BaseResponseListSpaceLevel_>('/api/picture/list/level', {
+    method: 'GET',
+    ...(options || {}),
+  })
+}
+
 /** listPictureVOByPage POST /api/picture/list/page/vo */
 export async function listPictureVoByPageUsingPost(
   body: API.PictureQueryRequest,

@@ -81,7 +81,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         Long id = picture.getId();
         String url = picture.getUrl();
         String introduction = picture.getIntroduction();
-        ThrowUtils.throwIf(ObjUtil.isNotNull(id), ErrorCode.PARAMS_ERROR, "id 不能为空");
+        ThrowUtils.throwIf(ObjUtil.isNull(id), ErrorCode.PARAMS_ERROR, "id 不能为空");
         if (StrUtil.isNotBlank(url)) {
             ThrowUtils.throwIf(url.length() > 1024, ErrorCode.PARAMS_ERROR, "url 过长");
         }
@@ -181,13 +181,15 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         transactionTemplate.execute(status -> {
             boolean result = this.saveOrUpdate(picture);
             ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "图片上传失败，数据库操作失败");
-            // 更新空间额度
-            boolean update = spaceService.lambdaUpdate()
-                    .eq(Space::getId, finalSpaceId)
-                    .setSql("totalSize = totalSize + " + picture.getPicSize())
-                    .setSql("totalCount = totalCount + 1")
-                    .update();
-            ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "额度更新失败");
+            if (finalSpaceId != null) {
+                // 更新空间额度
+                boolean update = spaceService.lambdaUpdate()
+                        .eq(Space::getId, finalSpaceId)
+                        .setSql("totalSize = totalSize + " + picture.getPicSize())
+                        .setSql("totalCount = totalCount + 1")
+                        .update();
+                ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "额度更新失败");
+            }
             return picture;
         });
 
@@ -412,7 +414,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
             // 释放额度
             boolean update = spaceService.lambdaUpdate()
-                    .eq(Space::getId, oldPicture.getId())
+                    .eq(Space::getId, oldPicture.getSpaceId())
                     .setSql("totalSize = totalSize - " + oldPicture.getPicSize())
                     .setSql("totalCount = totalCount - 1")
                     .update();
