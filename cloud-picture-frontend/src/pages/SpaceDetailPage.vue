@@ -10,6 +10,9 @@
       </a-space>
     </a-flex>
     <div style="margin-bottom: 16px" />
+    <!--  搜索表单  -->
+    <PictureSearchForm :onSearch="onSearch" />
+    <div style="margin-bottom: 16px" />
     <PictureList :dataList="dataList" :loading="loading" :show-op="true" :onReload="fetchData" />
     <a-pagination
       style="text-align: right"
@@ -28,6 +31,7 @@ import { message } from 'ant-design-vue'
 import { listPictureVoByPageUsingPost } from '@/api/pictureController.ts'
 import { formatSize } from '@/utils'
 import PictureList from '@/components/PictureList.vue'
+import PictureSearchForm from '@/components/PictureSearchForm.vue'
 
 interface Props {
   id: string | number
@@ -60,7 +64,7 @@ const dataList = ref<API.PictureVO[]>([])
 const total = ref(0)
 const loading = ref<boolean>(true)
 
-const searchParams = reactive<API.PictureQueryRequest>({
+const searchParams = ref<API.PictureQueryRequest>({
   currentPage: 1,
   pageSize: 10,
   sortField: 'createTime',
@@ -72,7 +76,7 @@ const fetchData = async () => {
   // 转换搜索参数
   const params = {
     spaceId: props.id,
-    ...searchParams,
+    ...searchParams.value,
   }
   const res = await listPictureVoByPageUsingPost(params)
   if (res.data.code === 0 && res.data.data) {
@@ -89,8 +93,17 @@ onMounted(() => {
 })
 
 const onPageChange = (page: number, pageSize: number) => {
-  searchParams.currentPage = page
-  searchParams.pageSize = pageSize
+  searchParams.value.currentPage = page
+  searchParams.value.pageSize = pageSize
+  fetchData()
+}
+
+const onSearch = (newSearchParams: API.PictureQueryRequest) => {
+  searchParams.value = {
+    ...newSearchParams.value,
+    ...newSearchParams,
+    currentPage: 1,
+  }
   fetchData()
 }
 </script>

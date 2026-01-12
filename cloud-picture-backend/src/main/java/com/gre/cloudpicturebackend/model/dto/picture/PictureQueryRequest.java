@@ -64,4 +64,8 @@ public class PictureQueryRequest extends PageRequest implements Serializable {
      * 是否只查询spaceId为null的数据
      */
     private boolean nullSpaceId;
+
+    private Date startEditTime;
+
+    private Date endEditTime;
 }
