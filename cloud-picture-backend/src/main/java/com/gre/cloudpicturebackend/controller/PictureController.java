@@ -7,6 +7,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.gre.cloudpicturebackend.annotation.AuthCheck;
+import com.gre.cloudpicturebackend.api.imageSearch.ImageSearchApiFacade;
+import com.gre.cloudpicturebackend.api.imageSearch.model.ImageSearchResult;
 import com.gre.cloudpicturebackend.common.BaseResponse;
 import com.gre.cloudpicturebackend.common.DeleteRequest;
 import com.gre.cloudpicturebackend.common.ResultUtils;
@@ -257,5 +259,21 @@ public class PictureController {
                 ))
                 .collect(Collectors.toList());
         return ResultUtils.success(spaceLevelList);
+    }
+
+    /**
+     * 以图搜图
+     * @param searchPictureByPictureRequest
+     * @return
+     */
+    @PostMapping("/search/picture")
+    public BaseResponse<List<ImageSearchResult>> searchPictureByPicture(@RequestBody SearchPictureByPictureRequest searchPictureByPictureRequest) {
+        ThrowUtils.throwIf(searchPictureByPictureRequest == null, ErrorCode.PARAMS_ERROR);
+        Long pictureId = searchPictureByPictureRequest.getPictureId();
+        ThrowUtils.throwIf(pictureId == null || pictureId <= 0, ErrorCode.PARAMS_ERROR);
+        Picture picture = pictureService.getById(pictureId);
+        ThrowUtils.throwIf(picture == null, ErrorCode.NOT_FOUND_ERROR);
+        List<ImageSearchResult> resultList = ImageSearchApiFacade.searchImage(picture.getUrl());
+        return ResultUtils.success(resultList);
     }
 }
