@@ -26,6 +26,8 @@ import com.gre.cloudpicturebackend.service.PictureService;
 import com.gre.cloudpicturebackend.mapper.PictureMapper;
 import com.gre.cloudpicturebackend.service.SpaceService;
 import com.gre.cloudpicturebackend.service.UserService;
+import com.gre.cloudpicturebackend.utils.ColorSimilarUtils;
+import com.gre.cloudpicturebackend.utils.ColorTransformUtils;
 import com.gre.cloudpicturebackend.vo.PictureVO;
 import com.gre.cloudpicturebackend.vo.UserVO;
 import lombok.extern.slf4j.Slf4j;
@@ -40,8 +42,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.awt.*;
 import java.io.IOException;
 import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -168,6 +172,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         picture.setPicHeight(uploadPictureResult.getPicHeight());
         picture.setPicScale(uploadPictureResult.getPicScale());
         picture.setPicFormat(uploadPictureResult.getPicFormat());
+//        picture.setPicColor(uploadPictureResult.getPicColor());
+        picture.setPicColor(ColorTransformUtils.getStandardColor(uploadPictureResult.getPicColor()));
         picture.setUserId(loginUser.getId());
         // 补充审核参数
         this.fillReviewParams(picture, loginUser);
@@ -461,8 +467,44 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             }
         }
     }
+
+    @Override
+    public List<PictureVO> searchPictureByColor(Long spaceId, String picColor, User loginUser) {
+        // 1. 校验参数
+        ThrowUtils.throwIf(spaceId == null || StrUtil.isBlank(picColor), ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR);
+        // 2、校验空间权限
+        Space space = spaceService.getById(spaceId);
+        ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+        if (!space.getUserId().equals(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间访问权限");
+        }
+        // 3、查询该空间下的所有图片 (必须有主色调)
+        List<Picture> pictureList = this.lambdaQuery()
+                .eq(Picture::getSpaceId, spaceId)
+                .isNotNull(Picture::getPicColor)
+                .list();
+        if (CollUtil.isEmpty(pictureList)) {
+            return new ArrayList<>();
+        }
+        // 将颜色字符串转换为主色调
+        Color targetColor = Color.decode(picColor);
+        // 5、计算相似度并排序
+        List<Picture> sortedPictureList = pictureList.stream()
+                .sorted(Comparator.comparingDouble(picture -> {
+                    String hexColor = picture.getPicColor();
+                    // 没有主色调的图片默认排序到最后
+                    if (StrUtil.isBlank(hexColor)) {
+                        return Double.MAX_VALUE;
+                    }
+                    Color pictureColor = Color.decode(hexColor);
+                    return -ColorSimilarUtils.calculateSimilarity(targetColor, pictureColor);
+                }))
+                .limit(12)  // 取前12个
+                .collect(Collectors.toList());
+        // 6、返回结果
+        return sortedPictureList.stream()
+                .map(PictureVO::objToVo)
+                .collect(Collectors.toList());
+    }
 }
-
-
-
-

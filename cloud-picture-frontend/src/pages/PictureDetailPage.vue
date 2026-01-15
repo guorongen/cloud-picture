@@ -44,6 +44,16 @@
             <a-descriptions-item label="大小">
               {{ formatSize(picture.picSize) }}
             </a-descriptions-item>
+            <a-descriptions-item label="主色调">
+              <a-space>
+                {{ picture.picColor ?? '-' }}
+                <div :style="{
+                  width: '16px',
+                  height: '16px',
+                  backgroundColor: toHexColor(picture.picColor),
+                }" />
+              </a-space>
+            </a-descriptions-item>
           </a-descriptions>
           <a-space wrap>
             <a-button type="primary" @click="doDownload">
@@ -66,7 +76,7 @@ import { onMounted, ref, h, computed } from 'vue'
 import { deletePictureUsingPost, getPictureVoByIdUsingGet } from '@/api/pictureController.ts'
 import { message } from 'ant-design-vue'
 import { EditOutlined, DeleteOutlined, DownloadOutlined } from '@ant-design/icons-vue'
-import { downloadImage, formatSize } from '@/utils'
+import { downloadImage, formatSize, toHexColor } from '@/utils'
 import { useLoginUserStore } from '@/stores/useLoginUserStore.ts'
 import { useRouter } from 'vue-router'
 
