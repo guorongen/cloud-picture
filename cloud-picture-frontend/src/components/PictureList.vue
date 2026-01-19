@@ -28,31 +28,31 @@
               </template>
             </a-card-meta>
             <template v-if="showOp" #actions>
-              <a-space @click="(e) => doSearch(picture, e)">
-                <search-outlined />
-                搜索
-              </a-space>
-              <a-space @click="(e) => doEdit(picture, e)">
-                <edit-outlined />
-                编辑
-              </a-space>
-              <a-space @click="(e) => doDelete(picture, e)">
-                <delete-outlined />
-                删除
-              </a-space>
+              <share-alt-outlined @click="(e) => doShare(picture, e)" />
+              <search-outlined @click="(e) => doSearch(picture, e)" />
+              <edit-outlined @click="(e) => doEdit(picture, e)" />
+              <delete-outlined @click="(e) => doDelete(picture, e)" />
             </template>
           </a-card>
         </a-list-item>
       </template>
     </a-list>
+    <ShareModal ref="shareModalRef" :link="shareLink" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { DeleteOutlined, EditOutlined, SearchOutlined } from '@ant-design/icons-vue'
+import {
+  DeleteOutlined,
+  EditOutlined,
+  SearchOutlined,
+  ShareAltOutlined,
+} from '@ant-design/icons-vue'
 import { deletePictureUsingPost } from '@/api/pictureController.ts'
 import { message } from 'ant-design-vue'
+import ShareModal from '@/components/ShareModal.vue'
+import { ref } from 'vue'
 
 interface Props {
   dataList?: API.PictureVO[]
@@ -65,7 +65,7 @@ const props = withDefaults(defineProps<Props>(), {
   dataList: () => [],
   loading: false,
   showOp: false,
-});
+})
 
 const router = useRouter()
 
@@ -89,13 +89,13 @@ const doEdit = (picture, e) => {
     query: {
       id: picture.id,
       spaceId: picture.spaceId,
-    }
+    },
   })
 }
 
 const doDelete = async (picture, e) => {
   e.stopPropagation()
-  const id = picture.id;
+  const id = picture.id
   if (!id) {
     return
   }
@@ -105,6 +105,16 @@ const doDelete = async (picture, e) => {
     props.onReload?.()
   } else {
     message.error('删除失败')
+  }
+}
+
+const shareModalRef = ref();
+const shareLink = ref<string>();
+const doShare = (picture, e) => {
+  e.stopPropagation();
+  shareLink.value = window.location.protocol + '//' + window.location.host + '/picture/' + picture.id;
+  if (shareModalRef.value) {
+    shareModalRef.value.openModal();
   }
 }
 </script>
