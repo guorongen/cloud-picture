@@ -8,6 +8,9 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.gre.cloudpicturebackend.api.aliyunai.AliYunAiApi;
+import com.gre.cloudpicturebackend.api.aliyunai.model.CreateOutPaintingTaskRequest;
+import com.gre.cloudpicturebackend.api.aliyunai.model.CreateOutPaintingTaskResponse;
 import com.gre.cloudpicturebackend.exception.BusinessException;
 import com.gre.cloudpicturebackend.exception.ErrorCode;
 import com.gre.cloudpicturebackend.exception.ThrowUtils;
@@ -16,6 +19,7 @@ import com.gre.cloudpicturebackend.manager.FileManager;
 import com.gre.cloudpicturebackend.manager.upload.FilePictureUpload;
 import com.gre.cloudpicturebackend.manager.upload.PictureUploadTemplate;
 import com.gre.cloudpicturebackend.manager.upload.UrlPictureUpload;
+import com.gre.cloudpicturebackend.mapper.PictureMapper;
 import com.gre.cloudpicturebackend.model.dto.file.UploadPictureResult;
 import com.gre.cloudpicturebackend.model.dto.picture.*;
 import com.gre.cloudpicturebackend.model.entity.Picture;
@@ -23,7 +27,6 @@ import com.gre.cloudpicturebackend.model.entity.Space;
 import com.gre.cloudpicturebackend.model.entity.User;
 import com.gre.cloudpicturebackend.model.enums.PictureReviewStatusEnum;
 import com.gre.cloudpicturebackend.service.PictureService;
-import com.gre.cloudpicturebackend.mapper.PictureMapper;
 import com.gre.cloudpicturebackend.service.SpaceService;
 import com.gre.cloudpicturebackend.service.UserService;
 import com.gre.cloudpicturebackend.utils.ColorSimilarUtils;
@@ -44,8 +47,8 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.awt.*;
 import java.io.IOException;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -78,6 +81,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 
     @Resource
     private TransactionTemplate transactionTemplate;
+
+    @Resource
+    private AliYunAiApi aliYunAiApi;
 
     @Override
     public void validPicture(Picture picture) {
@@ -548,6 +554,20 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 5、操作数据库
         boolean result = this.updateBatchById(pictureList);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "批量编辑失败");
+    }
+
+    @Override
+    public CreateOutPaintingTaskResponse createPictureOutPaintingTask(CreatePictureOutPaintingTaskRequest createPictureOutPaintingTaskRequest, User loginUser) {
+        Long pictureId = createPictureOutPaintingTaskRequest.getPictureId();
+        Picture picture = Optional.ofNullable(this.getById(pictureId))
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND_ERROR, "图片不存在"));
+        checkPictureAuth(loginUser, picture);
+        CreateOutPaintingTaskRequest createOutPaintingTaskRequest = new CreateOutPaintingTaskRequest();
+        CreateOutPaintingTaskRequest.Input input = new CreateOutPaintingTaskRequest.Input();
+        input.setImageUrl(picture.getUrl());
+        createOutPaintingTaskRequest.setInput(input);
+        createOutPaintingTaskRequest.setParameters(createPictureOutPaintingTaskRequest.getParameters());
+        return aliYunAiApi.createOutPaintingTask(createOutPaintingTaskRequest);
     }
 
     /**

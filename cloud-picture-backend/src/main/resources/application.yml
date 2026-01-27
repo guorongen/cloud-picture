@@ -60,3 +60,6 @@ cos:
     secretKey: XXX
     region: XXX
     bucket: XXX
+# 阿里云 AI 配置
+aliYunAi:
+  apiKey: XXX
