@@ -47,11 +47,13 @@
             <a-descriptions-item label="主色调">
               <a-space>
                 {{ picture.picColor ?? '-' }}
-                <div :style="{
-                  width: '16px',
-                  height: '16px',
-                  backgroundColor: toHexColor(picture.picColor),
-                }" />
+                <div
+                  :style="{
+                    width: '16px',
+                    height: '16px',
+                    backgroundColor: toHexColor(picture.picColor),
+                  }"
+                />
               </a-space>
             </a-descriptions-item>
           </a-descriptions>
@@ -62,9 +64,15 @@
                 <DownloadOutlined />
               </template>
             </a-button>
-            <a-button :icon="h(ShareAltOutlined)" type="primary" ghost @click="doShare">分享</a-button>
-            <a-button v-if="canEdit" :icon="h(EditOutlined)" type="default" @click="doEdit"> 编辑 </a-button>
-            <a-button v-if="canEdit" :icon="h(DeleteOutlined)" danger @click="doDelete">删除</a-button>
+            <a-button :icon="h(ShareAltOutlined)" type="primary" ghost @click="doShare"
+              >分享</a-button
+            >
+            <a-button v-if="canEdit" :icon="h(EditOutlined)" type="default" @click="doEdit">
+              编辑
+            </a-button>
+            <a-button v-if="canDelete" :icon="h(DeleteOutlined)" danger @click="doDelete"
+              >删除</a-button
+            >
           </a-space>
         </a-card>
       </a-col>
@@ -74,14 +82,19 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, h, computed } from 'vue'
+import { computed, h, onMounted, ref } from 'vue'
 import { deletePictureUsingPost, getPictureVoByIdUsingGet } from '@/api/pictureController.ts'
 import { message } from 'ant-design-vue'
-import { EditOutlined, DeleteOutlined, DownloadOutlined, ShareAltOutlined } from '@ant-design/icons-vue'
+import {
+  DeleteOutlined,
+  DownloadOutlined,
+  EditOutlined,
+  ShareAltOutlined,
+} from '@ant-design/icons-vue'
 import { downloadImage, formatSize, toHexColor } from '@/utils'
-import { useLoginUserStore } from '@/stores/useLoginUserStore.ts'
 import { useRouter } from 'vue-router'
 import ShareModal from '@/components/ShareModal.vue'
+import { SPACE_PERMISSION_ENUM } from '@/constants/space.ts'
 
 interface Props {
   id: string | number
@@ -90,16 +103,14 @@ interface Props {
 const props = defineProps<Props>()
 const picture = ref<API.PictureVO>({})
 
-const loginUserStore = useLoginUserStore();
+function createPermissionChecker(permission: string) {
+  return computed(() => {
+    return (picture.value.permissionList ?? []).includes(permission)
+  })
+}
 
-const canEdit = computed(() => {
-  const loginUser = loginUserStore.loginUser;
-  if (!loginUser.id) {
-    return false;
-  }
-  const user = picture.value.user || {}
-  return loginUser.id === user.id || loginUser.userRole === 'admin'
-})
+const canEdit = createPermissionChecker(SPACE_PERMISSION_ENUM.PICTURE_EDIT)
+const canDelete = createPermissionChecker(SPACE_PERMISSION_ENUM.PICTURE_DELETE)
 
 const fetchPictureDetail = async () => {
   try {
@@ -120,7 +131,7 @@ onMounted(() => {
   fetchPictureDetail()
 })
 
-const router = useRouter();
+const router = useRouter()
 
 const doEdit = () => {
   router.push('/add_picture?id=' + picture.value.id)
@@ -129,12 +140,12 @@ const doEdit = () => {
     query: {
       id: picture.value.id,
       spaceId: picture.value.spaceId,
-    }
+    },
   })
 }
 
 const doDelete = async () => {
-  const id = picture.value.id;
+  const id = picture.value.id
   if (!id) {
     return
   }
@@ -150,12 +161,13 @@ const doDownload = () => {
   downloadImage(picture.value.url)
 }
 
-const shareModalRef = ref();
-const shareLink = ref<string>();
+const shareModalRef = ref()
+const shareLink = ref<string>()
 const doShare = () => {
-  shareLink.value = window.location.protocol + '//' + window.location.host + '/picture/' + picture.value.id;
+  shareLink.value =
+    window.location.protocol + '//' + window.location.host + '/picture/' + picture.value.id
   if (shareModalRef.value) {
-    shareModalRef.value.openModal();
+    shareModalRef.value.openModal()
   }
 }
 </script>

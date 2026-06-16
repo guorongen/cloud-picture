@@ -1,13 +1,42 @@
 <template>
   <div id="spaceDetailPage">
     <a-flex justify="space-between">
-      <h2>{{ space.spaceName }}（私有空间）</h2>
+      <h2>{{ space.spaceName }}（{{ SPACE_TYPE_MAP[space.spaceType] }}）</h2>
       <a-space size="middle">
-        <a-button type="primary" :href="'/add_picture?spaceId=' + id" target="_blank">+ 创建图片</a-button>
-        <a-button type="primary" ghost :icon="h(BarChartOutlined)" :href="'/space_analyze?spaceId=' + id" target="_blank">空间分析</a-button>
-        <a-button :icon="h(EditOutlined)" @click="doBatchEdit">批量编辑</a-button>
-        <a-tooltip :title="'占用空间' + formatSize(space.totalSize) + '/' + formatSize(space.maxSize)">
-          <a-progress type="circle" :size="42" :percent="((space.totalSize * 100) / space.maxSize).toFixed(1)" />
+        <a-button
+          v-if="canUploadPicture"
+          type="primary"
+          :href="'/add_picture?spaceId=' + id"
+          target="_blank"
+          >+ 创建图片
+        </a-button>
+        <a-button
+          v-if="canManageSpaceUser"
+          type="primary"
+          ghost
+          :icon="h(TeamOutlined)"
+          :href="'/spaceUserManage/' + id"
+          target="_blank"
+          >成员管理
+        </a-button>
+        <a-button
+          v-if="canManageSpaceUser"
+          type="primary"
+          ghost
+          :icon="h(BarChartOutlined)"
+          :href="'/space_analyze?spaceId=' + id"
+          target="_blank"
+          >空间分析
+        </a-button>
+        <a-button v-if="canDeletePicture" :icon="h(EditOutlined)" @click="doBatchEdit">批量编辑</a-button>
+        <a-tooltip
+          :title="'占用空间' + formatSize(space.totalSize) + '/' + formatSize(space.maxSize)"
+        >
+          <a-progress
+            type="circle"
+            :size="42"
+            :percent="((space.totalSize * 100) / space.maxSize).toFixed(1)"
+          />
         </a-tooltip>
       </a-space>
     </a-flex>
@@ -18,7 +47,14 @@
     <a-form-item label="按颜色搜索">
       <color-picker format="hex" @pureColorChange="onColorChange" />
     </a-form-item>
-    <PictureList :dataList="dataList" :loading="loading" :show-op="true" :onReload="fetchData" />
+    <PictureList
+      :dataList="dataList"
+      :loading="loading"
+      :show-op="true"
+      :canEdit="canEditPicture"
+      :canDelete="canDeletePicture"
+      :onReload="fetchData"
+    />
     <a-pagination
       style="text-align: right"
       v-model:current="searchParams.currentPage"
@@ -26,22 +62,31 @@
       :total="total"
       @change="onPageChange"
     />
-    <BatchEditPictureModal ref="batchEditPictureModalRef" :spaceId="id" :pictureList="dataList" :onSuccess="onBatchEditPictureSuccess" />
+    <BatchEditPictureModal
+      ref="batchEditPictureModalRef"
+      :spaceId="id"
+      :pictureList="dataList"
+      :onSuccess="onBatchEditPictureSuccess"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { h, onMounted, reactive, ref } from 'vue'
+import { computed, h, onMounted, ref, watch } from 'vue'
 import { getSpaceVoByIdUsingGet } from '@/api/spaceController.ts'
 import { message } from 'ant-design-vue'
-import { listPictureVoByPageUsingPost, searchPictureByColorUsingPost } from '@/api/pictureController.ts'
+import {
+  listPictureVoByPageUsingPost,
+  searchPictureByColorUsingPost,
+} from '@/api/pictureController.ts'
 import { formatSize } from '@/utils'
 import PictureList from '@/components/PictureList.vue'
 import PictureSearchForm from '@/components/PictureSearchForm.vue'
 import { ColorPicker } from 'vue3-colorpicker'
-import "vue3-colorpicker/style.css";
+import 'vue3-colorpicker/style.css'
 import BatchEditPictureModal from '@/components/BatchEditPictureModal.vue'
-import { EditOutlined, BarChartOutlined } from '@ant-design/icons-vue'
+import { BarChartOutlined, EditOutlined, TeamOutlined } from '@ant-design/icons-vue'
+import { SPACE_PERMISSION_ENUM, SPACE_TYPE_MAP } from '../constants/space.ts'
 
 interface Props {
   id: string | number
@@ -49,6 +94,17 @@ interface Props {
 
 const props = defineProps<Props>()
 const space = ref<API.SpaceVO>({})
+
+function createPermissionChecker(permission: string) {
+  return computed(() => {
+    return (space.value.permissionList ?? []).includes(permission)
+  })
+}
+
+const canManageSpaceUser = createPermissionChecker(SPACE_PERMISSION_ENUM.SPACE_USER_MANAGE)
+const canUploadPicture = createPermissionChecker(SPACE_PERMISSION_ENUM.PICTURE_UPLOAD)
+const canEditPicture = createPermissionChecker(SPACE_PERMISSION_ENUM.PICTURE_EDIT)
+const canDeletePicture = createPermissionChecker(SPACE_PERMISSION_ENUM.PICTURE_DELETE)
 
 const fetchSpaceDetail = async () => {
   try {
@@ -118,21 +174,21 @@ const onSearch = (newSearchParams: API.PictureQueryRequest) => {
 }
 
 const onColorChange = async (color: string) => {
-  loading.value = true;
+  loading.value = true
   const res = await searchPictureByColorUsingPost({
     picColor: color,
-    spaceId: props.id
+    spaceId: props.id,
   })
   if (res.data.code === 0 && res.data.data) {
-    dataList.value = res.data.data ?? [];
-    total.value = res.data.data.length;
+    dataList.value = res.data.data ?? []
+    total.value = res.data.data.length
   } else {
-    message.error("获取数据失败，" + res.data.message);
+    message.error('获取数据失败，' + res.data.message)
   }
-  loading.value = false;
+  loading.value = false
 }
 
-const batchEditPictureModalRef = ref();
+const batchEditPictureModalRef = ref()
 
 const onBatchEditPictureSuccess = () => {
   fetchData()
@@ -140,9 +196,18 @@ const onBatchEditPictureSuccess = () => {
 
 const doBatchEdit = () => {
   if (batchEditPictureModalRef.value) {
-    batchEditPictureModalRef.value.openModal();
+    batchEditPictureModalRef.value.openModal()
   }
 }
+
+// 空间id改变时，必须重新获取数据
+watch(
+  () => props.id,
+  () => {
+    fetchSpaceDetail()
+    fetchData()
+  },
+)
 </script>
 
 <style scoped>

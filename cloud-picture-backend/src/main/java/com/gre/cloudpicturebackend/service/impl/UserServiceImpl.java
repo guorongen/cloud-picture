@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.gre.cloudpicturebackend.constant.UserConstant;
 import com.gre.cloudpicturebackend.exception.BusinessException;
 import com.gre.cloudpicturebackend.exception.ErrorCode;
+import com.gre.cloudpicturebackend.manager.auth.StpKit;
 import com.gre.cloudpicturebackend.model.dto.user.UserQueryRequest;
 import com.gre.cloudpicturebackend.model.entity.User;
 import com.gre.cloudpicturebackend.model.enums.UserRoleEnum;
@@ -107,6 +108,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
         // 4、保存用户登录状态
         request.getSession().setAttribute(UserConstant.USER_LOGIN_STATE, user);
+        // 记录用户登录态到 sa-token，便于空间鉴权时使用，注意保证该用户信息与 SpringSession 中的信息过期时间一致
+        StpKit.SPACE.login(user.getId());
+        StpKit.SPACE.getSession().set(UserConstant.USER_LOGIN_STATE, user);
         return this.getLoginUserVO(user);
     }
 

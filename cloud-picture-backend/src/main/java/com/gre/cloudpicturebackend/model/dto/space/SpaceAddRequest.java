@@ -15,4 +15,6 @@ public class SpaceAddRequest implements Serializable {
     private String spaceName;
 
     private Integer spaceLevel;
+
+    private Integer spaceType;
 }

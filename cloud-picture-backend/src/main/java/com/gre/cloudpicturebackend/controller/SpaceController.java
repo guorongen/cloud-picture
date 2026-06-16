@@ -10,6 +10,7 @@ import com.gre.cloudpicturebackend.constant.UserConstant;
 import com.gre.cloudpicturebackend.exception.BusinessException;
 import com.gre.cloudpicturebackend.exception.ErrorCode;
 import com.gre.cloudpicturebackend.exception.ThrowUtils;
+import com.gre.cloudpicturebackend.manager.auth.SpaceUserAuthManager;
 import com.gre.cloudpicturebackend.model.dto.space.SpaceAddRequest;
 import com.gre.cloudpicturebackend.model.dto.space.SpaceEditRequest;
 import com.gre.cloudpicturebackend.model.dto.space.SpaceQueryRequest;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -36,6 +38,9 @@ public class SpaceController {
 
     @Resource
     private SpaceService spaceService;
+
+    @Resource
+    private SpaceUserAuthManager spaceUserAuthManager;
 
     @PostMapping("/add")
     public BaseResponse<Long> addSpace(@RequestBody SpaceAddRequest spaceAddRequest, HttpServletRequest request) {
@@ -93,7 +98,11 @@ public class SpaceController {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         Space space = spaceService.getById(id);
         ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR);
-        return ResultUtils.success(spaceService.getSpaceVO(space, request));
+        SpaceVO spaceVO = spaceService.getSpaceVO(space, request);
+        User loginUser = userService.getLoginUser(request);
+        List<String> permissionList = spaceUserAuthManager.getPermissionList(space, loginUser);
+        spaceVO.setPermissionList(permissionList);
+        return ResultUtils.success(spaceVO);
     }
 
     @PostMapping("/list/vo")

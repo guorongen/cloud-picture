@@ -6,6 +6,7 @@ import com.gre.cloudpicturebackend.model.entity.Picture;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -57,6 +58,11 @@ public class PictureVO implements Serializable {
     private Date updateTime;
 
     private UserVO user;
+
+    /**
+     * 权限列表
+     */
+    private List<String> permissionList = new ArrayList<>();
 
     /**
      * 封装类转对象

@@ -93,3 +93,23 @@ create index idx_spaceId on picture (spaceId);
 
 alter table picture
     add column picColor varchar(16) null comment '图片主色调';
+
+alter table space
+    add column spaceType int default 0 not null comment '空间类型 0-私有 1-团队';
+
+create index idx_spaceType on space (spaceType);
+
+-- 空间成员表
+create table if not exists space_user
+(
+    id         bigint auto_increment comment 'id' primary key,
+    spaceId    bigint                                 not null comment '空间id',
+    userId     bigint                                 not null comment '用户id',
+    spaceRole  varchar(128) default 'viewer'          null comment '空间角色：viewer/editor/admin',
+    createTime datetime     default current_timestamp not null comment '创建时间',
+    updateTime datetime     default current_timestamp not null on update current_timestamp comment '更新时间',
+    -- 索引设计
+    unique key uk_spaceId_userId (spaceId, userId), -- 唯一索引，用户在一个空间中只能有一个角色
+    index idx_spaceId (spaceId),                    -- 提升按空间查询的性能
+    index idx_userId (userId)                       -- 提升按用户查询的性能
+) comment '空间用户关联' collate = utf8mb4_unicode_ci;
