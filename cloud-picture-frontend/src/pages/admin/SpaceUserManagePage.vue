@@ -33,7 +33,7 @@
         <template v-if="column.dataIndex === 'spaceRole'">
           <a-select
             v-model:value="record.spaceRole"
-            :options="SPACE_LEVEL_OPTIONS"
+            :options="SPACE_ROLE_OPTIONS"
             @change="(value) => editSpaceRole(value, record)"
           />
         </template>
@@ -54,7 +54,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
-import { SPACE_LEVEL_OPTIONS } from '../../constants/space.ts'
+import { SPACE_LEVEL_OPTIONS, SPACE_ROLE_ENUM, SPACE_ROLE_OPTIONS } from '../../constants/space.ts'
 import {
   addSpaceUserUsingPost,
   deleteSpaceUserUsingPost,

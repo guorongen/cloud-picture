@@ -19,7 +19,7 @@
         <a-button :icon="h(EditOutlined)" @click="doEditPicture">编辑图片</a-button>
         <a-button type="primary" :icon="h(FullscreenOutlined)" @click="doImagePainting">AI 扩图</a-button>
       </a-space>
-      <ImageCropper ref="imageCropperRef" :image-url="picture?.url" :picture="picture" :spaceId="spaceId" :onSuccess="onCropSuccess" />
+      <ImageCropper ref="imageCropperRef" :image-url="picture?.url" :picture="picture" :spaceId="spaceId" :space="space" :onSuccess="onCropSuccess" />
       <ImageOutPainting ref="imageOutPaintingRef" :picture="picture" :spaceId="spaceId" :onSuccess="onImageOutPaintingSuccess" />
     </div>
     <a-form
@@ -67,7 +67,7 @@
 
 <script setup lang="ts">
 import PictureUpload from '@/components/PictureUpload.vue'
-import { computed, h, onMounted, reactive, ref } from 'vue'
+import { computed, h, onMounted, reactive, ref, watchEffect } from 'vue'
 import {
   editPictureUsingPost,
   getPictureVoByIdUsingGet,
@@ -79,6 +79,7 @@ import UrlPictureUpload from '@/components/UrlPictureUpload.vue'
 import ImageCropper from '@/components/ImageCropper.vue'
 import { EditOutlined, FullscreenOutlined } from '@ant-design/icons-vue'
 import ImageOutPainting from '@/components/ImageOutPainting.vue'
+import { getSpaceVoByIdUsingGet } from '@/api/spaceController.ts'
 
 const picture = ref<API.PictureVO>()
 const pictureForm = reactive<API.PictureEditRequest>({})
@@ -192,6 +193,23 @@ const doImagePainting = () => {
 const onImageOutPaintingSuccess = (newPicture: API.PictureVO) => {
   picture.value = newPicture;
 }
+
+const space = ref<API.SpaceVO>()
+
+const fetchSpace = async () => {
+  if (spaceId.value) {
+    const res = await getSpaceVoByIdUsingGet({
+      id: spaceId.value,
+    })
+    if (res.data.code === 0 && res.data.data) {
+      space.value = res.data.data
+    }
+  }
+}
+
+watchEffect(() => {
+  fetchSpace()
+})
 </script>
 
 <style scoped>
