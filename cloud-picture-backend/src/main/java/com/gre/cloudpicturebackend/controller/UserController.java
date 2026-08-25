@@ -188,4 +188,15 @@ public class UserController {
         return ResultUtils.success(userVOPage);
     }
 
+    @PostMapping("/exchange/vip")
+    public BaseResponse<Boolean> exchangeVip(@RequestBody VipExchangeRequest vipExchangeRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(vipExchangeRequest == null, ErrorCode.PARAMS_ERROR);
+        String vipCode = vipExchangeRequest.getVipCode();
+        User loginUser = userService.getLoginUser(request);
+
+        boolean result = userService.exchangeVip(loginUser, vipCode);
+
+        return ResultUtils.success(result);
+    }
+
 }

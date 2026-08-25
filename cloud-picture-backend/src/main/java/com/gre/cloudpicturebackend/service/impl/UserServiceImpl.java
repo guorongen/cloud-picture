@@ -2,8 +2,13 @@ package com.gre.cloudpicturebackend.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.date.DateTime;
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONArray;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.gre.cloudpicturebackend.constant.UserConstant;
@@ -11,20 +16,30 @@ import com.gre.cloudpicturebackend.exception.BusinessException;
 import com.gre.cloudpicturebackend.exception.ErrorCode;
 import com.gre.cloudpicturebackend.manager.auth.StpKit;
 import com.gre.cloudpicturebackend.model.dto.user.UserQueryRequest;
+import com.gre.cloudpicturebackend.model.dto.user.VipCode;
 import com.gre.cloudpicturebackend.model.entity.User;
 import com.gre.cloudpicturebackend.model.enums.UserRoleEnum;
 import com.gre.cloudpicturebackend.service.UserService;
 import com.gre.cloudpicturebackend.mapper.UserMapper;
 import com.gre.cloudpicturebackend.vo.LoginUserVO;
 import com.gre.cloudpicturebackend.vo.UserVO;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 /**
@@ -233,6 +248,80 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     @Override
     public boolean isAdmin(User user) {
         return user != null && UserRoleEnum.ADMIN.getValue().equals(user.getUserRole());
+    }
+
+    @Autowired
+    private ResourceLoader resourceLoader;
+
+    private final ReentrantLock fileLock = new ReentrantLock();
+
+    private static final String VIP_ROLE = "vip";
+
+    @Override
+    public boolean exchangeVip(User user, String vipCode) {
+        if (user == null || StrUtil.isBlank(vipCode)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+
+        VipCode targetCode = validateAndMarkVipCode(vipCode);
+        updateUserVipInfo(user, targetCode.getCode());
+        return true;
+    }
+
+    private VipCode validateAndMarkVipCode(String vipCode) {
+        fileLock.lock();
+        try {
+            JSONArray jsonArray = readVipCodeFile();
+
+            List<VipCode> codes = JSONUtil.toList(jsonArray, VipCode.class);
+            VipCode target = codes.stream()
+                    .filter(code -> code.getCode().equals(vipCode) && !code.isHasUsed())
+                    .findFirst()
+                    .orElseThrow(() -> new BusinessException(ErrorCode.PARAMS_ERROR, "无效的兑换码"));
+
+            target.setHasUsed(true);
+
+            writeVipCodeFile(JSONUtil.parseArray(codes));
+            return target;
+        } finally {
+            fileLock.unlock();
+        }
+    }
+
+    private JSONArray readVipCodeFile() {
+        try {
+            Resource resource = resourceLoader.getResource("classpath:biz/vip-code.json");
+            String content = FileUtil.readString(resource.getFile(), StandardCharsets.UTF_8);
+            return JSONUtil.parseArray(content);
+        } catch (IOException e) {
+            log.error("读取兑换码文件失败", e);
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "系统繁忙");
+        }
+    }
+
+    private void writeVipCodeFile(JSONArray jsonArray) {
+        try {
+            Resource resource = resourceLoader.getResource("classpath:biz/vipCode.json");
+            FileUtil.writeString(jsonArray.toStringPretty(), resource.getFile(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            log.error("更新兑换码文件失败", e);
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "系统繁忙");
+        }
+    }
+
+    private void updateUserVipInfo(User user, String usedVipCode) {
+        Date expireTime = DateUtil.offsetMonth(new Date(), 12);
+
+        User updateUser = new User();
+        updateUser.setId(user.getId());
+        updateUser.setVipExpireTime(expireTime);
+        updateUser.setVipCode(usedVipCode);
+        updateUser.setUserRole(VIP_ROLE);
+
+        boolean updated = this.updateById(updateUser);
+        if (!updated) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "操作数据库失败");
+        }
     }
 }
 

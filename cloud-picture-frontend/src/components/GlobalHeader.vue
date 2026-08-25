@@ -87,6 +87,11 @@ const originItems = [
     label: '空间管理',
     title: '空间管理',
   },
+  {
+    key: '/user_exchange_vip',
+    label: '兑换会员',
+    title: '兑换会员',
+  },
 ]
 
 const filterMenus = (menus = [] as MenuProps['items']) => {

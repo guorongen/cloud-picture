@@ -9,4 +9,6 @@ public interface UserConstant {
     String DEFAULT_ROLE = "user";
 
     String ADMIN_ROLE = "admin";
+
+    String VIP_ROLE = "vip";
 }
